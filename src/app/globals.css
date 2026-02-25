@@ -1,26 +1,120 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #050805;
+  --surface: #080e08;
+  --surface2: #0c140c;
+  --lime: #aaff00;
+  --lime-dim: rgba(170,255,0,0.5);
+  --lime-muted: rgba(170,255,0,0.15);
+  --lime-border: rgba(170,255,0,0.12);
+  --text: #c8e8a8;
+  --text-muted: rgba(200,232,168,0.45);
+  --text-dim: rgba(200,232,168,0.2);
+  --red: #ff4422;
+  --amber: #ffbb00;
+  --white: #e8f4e0;
+  --border: rgba(170,255,0,0.1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+  overflow-x: hidden;
+  min-height: 100vh;
+  /* Scanlines overlay */
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
 }
+
+/* Subtle CRT flicker */
+@keyframes flicker {
+  0%,100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.97; }
+  94% { opacity: 1; }
+  96% { opacity: 0.98; }
+  98% { opacity: 1; }
+}
+body { animation: flicker 8s infinite; }
+
+/* Cursor blink */
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cursor::after {
+  content: '█';
+  color: var(--lime);
+  animation: blink 1s step-end infinite;
+}
+
+/* Scanline sweep animation */
+@keyframes scanline-sweep {
+  0% { top: -4px; }
+  100% { top: 100%; }
+}
+.scanline-sweep {
+  position: fixed;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(to bottom, transparent, rgba(170,255,0,0.15), transparent);
+  pointer-events: none;
+  animation: scanline-sweep 3s linear infinite;
+  z-index: 999;
+}
+
+/* Typewriter animation */
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* ASCII progress bar fill */
+@keyframes bar-fill {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0% 0 0); }
+}
+.bar-fill { animation: bar-fill 1.2s cubic-bezier(0.22,1,0.36,1) forwards; }
+
+/* Terminal box border */
+.t-box {
+  border: 1px solid var(--lime-border);
+  background: var(--surface);
+}
+.t-box-bright {
+  border: 1px solid rgba(170,255,0,0.3);
+  background: var(--surface);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: rgba(170,255,0,0.2); }
+
+/* Input reset */
+input { background: transparent; border: none; outline: none; color: var(--lime); font-family: inherit; font-size: inherit; }
+input::placeholder { color: var(--text-dim); }
+button { font-family: inherit; cursor: pointer; background: none; border: none; }
+
+/* Text utilities */
+.text-lime { color: var(--lime); }
+.text-muted { color: var(--text-muted); }
+.text-dim { color: var(--text-dim); }
+.text-red { color: var(--red); }
+.text-amber { color: var(--amber); }
+.text-white { color: var(--white); }
+
+/* Hover row highlight */
+.data-row:hover { background: rgba(170,255,0,0.03); }
