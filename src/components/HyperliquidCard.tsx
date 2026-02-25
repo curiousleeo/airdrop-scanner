@@ -3,55 +3,44 @@ import { motion } from "framer-motion";
 import AsciiBar from "./AsciiBar";
 import { TierVerdict, AnimatedScore } from "./TerminalScore";
 
-interface HyperliquidStats {
+interface HyperEVMStats {
   wallet: string;
-  totalVolumeUSD: number;
-  lifetimePnl: number;
-  totalFeesPaid: number;
-  activeDayCount: number;
-  firstActiveDate: string | null;
-  lastActiveDate: string | null;
-  walletAge: number;
+  txCount: number;
   hypeBalance: number;
-  receivedS1Airdrop: boolean;
-  openPositions: number;
+  tokenCount: number;
+  uniqueContracts: number;
+  firstTxDate: string | null;
+  lastTxDate: string | null;
+  walletAge: number;
   score: number;
   tier: "legendary" | "high" | "medium" | "low" | "none";
   error?: string;
 }
 
-function fmt(n: number): string {
-  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`;
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-  return `$${n.toFixed(2)}`;
+function fmtAge(d: number): string {
+  if (d >= 365) return `${Math.floor(d / 365)}Y ${d % 365}D`;
+  if (d >= 30) return `${Math.floor(d / 30)}M ${d % 30}D`;
+  return `${d}D`;
 }
 
-function fmtPnl(n: number): string {
-  const abs = Math.abs(n);
-  const prefix = n >= 0 ? "+" : "-";
-  if (abs >= 1_000_000) return `${prefix}$${(abs / 1_000_000).toFixed(2)}M`;
-  if (abs >= 1_000) return `${prefix}$${(abs / 1_000).toFixed(1)}K`;
-  return `${prefix}$${abs.toFixed(2)}`;
-}
+export default function HyperliquidCard({ stats, delay = 0 }: { stats: HyperEVMStats; delay?: number }) {
+  const txScore =
+    stats.txCount >= 100 ? 60 :
+    stats.txCount >= 50 ? 45 :
+    stats.txCount >= 20 ? 30 :
+    stats.txCount >= 6 ? 20 :
+    stats.txCount >= 1 ? 10 : 0;
 
-export default function HyperliquidCard({ stats, delay = 0 }: { stats: HyperliquidStats; delay?: number }) {
-  const volScore = stats.totalVolumeUSD >= 1_000_000 ? 65 :
-    stats.totalVolumeUSD >= 200_000 ? 50 :
-    stats.totalVolumeUSD >= 50_000 ? 35 :
-    stats.totalVolumeUSD >= 10_000 ? 20 :
-    stats.totalVolumeUSD >= 1_000 ? 10 : 0;
+  const contractScore =
+    stats.uniqueContracts >= 10 ? 20 :
+    stats.uniqueContracts >= 5 ? 15 :
+    stats.uniqueContracts >= 3 ? 10 :
+    stats.uniqueContracts >= 1 ? 5 : 0;
 
-  const dayScore = stats.activeDayCount >= 60 ? 20 :
-    stats.activeDayCount >= 30 ? 15 :
-    stats.activeDayCount >= 15 ? 10 :
-    stats.activeDayCount >= 5 ? 5 : 0;
-
-  const hypeScore = stats.hypeBalance >= 1000 ? 15 :
-    stats.hypeBalance >= 100 ? 10 :
-    stats.hypeBalance >= 10 ? 5 : 0;
-
-  const pnlColor = stats.lifetimePnl >= 0 ? "var(--lime)" : "var(--red)";
+  const tokenScore =
+    stats.tokenCount >= 5 ? 10 :
+    stats.tokenCount >= 3 ? 7 :
+    stats.tokenCount >= 1 ? 4 : 0;
 
   return (
     <motion.div
@@ -71,23 +60,8 @@ export default function HyperliquidCard({ stats, delay = 0 }: { stats: Hyperliqu
           justifyContent: "space-between",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span className="text-lime font-bold text-sm">■ HYPERLIQUID (HYPE)</span>
-          {stats.receivedS1Airdrop && (
-            <span
-              className="text-xs"
-              style={{
-                color: "var(--lime)",
-                border: "1px solid rgba(170,255,0,0.3)",
-                padding: "1px 6px",
-                background: "rgba(170,255,0,0.06)",
-              }}
-            >
-              S1 RECEIVED
-            </span>
-          )}
-        </div>
-        <span className="text-xs" style={{ color: "rgba(170,255,0,0.4)" }}>SEASON 2 ACTIVE</span>
+        <span className="text-lime font-bold text-sm">■ HYPEREVM</span>
+        <span className="text-xs" style={{ color: "rgba(170,255,0,0.4)" }}>ECOSYSTEM ACTIVITY</span>
       </div>
 
       <div style={{ padding: "16px" }}>
@@ -109,43 +83,31 @@ export default function HyperliquidCard({ stats, delay = 0 }: { stats: Hyperliqu
               </div>
             </div>
 
-            {/* Divider */}
             <div style={{ borderTop: "1px solid rgba(170,255,0,0.08)", margin: "12px 0" }} />
 
             {/* Data rows */}
             <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "13px" }}>
-              <DataRow label="PERP VOLUME" value={fmt(stats.totalVolumeUSD)} />
-              <DataRow label="ACTIVE DAYS" value={stats.activeDayCount.toLocaleString()} />
-              <DataRow
-                label="LIFETIME P&L"
-                value={stats.lifetimePnl !== 0 ? fmtPnl(stats.lifetimePnl) : "—"}
-                valueColor={stats.lifetimePnl !== 0 ? pnlColor : undefined}
-              />
+              <DataRow label="TRANSACTIONS" value={stats.txCount > 0 ? stats.txCount.toLocaleString() : "—"} />
+              <DataRow label="PROTOCOLS USED" value={stats.uniqueContracts > 0 ? `${stats.uniqueContracts} CONTRACTS` : "—"} />
+              <DataRow label="TOKENS HELD" value={stats.tokenCount > 0 ? `${stats.tokenCount} TOKENS` : "—"} />
               <DataRow
                 label="HYPE BALANCE"
                 value={stats.hypeBalance > 0 ? `${stats.hypeBalance.toLocaleString()} HYPE` : "—"}
                 highlight={stats.hypeBalance > 0}
               />
-              {stats.openPositions > 0 && (
-                <DataRow label="OPEN POSITIONS" value={`${stats.openPositions} ACTIVE`} highlight />
-              )}
-              {stats.firstActiveDate && (
-                <DataRow label="FIRST ACTIVE" value={stats.firstActiveDate} />
-              )}
-              {stats.lastActiveDate && (
-                <DataRow label="LAST ACTIVE" value={stats.lastActiveDate} />
-              )}
+              <DataRow label="WALLET AGE" value={stats.walletAge > 0 ? fmtAge(stats.walletAge) : "—"} />
+              {stats.firstTxDate && <DataRow label="FIRST TX" value={stats.firstTxDate} />}
+              {stats.lastTxDate && <DataRow label="LAST TX" value={stats.lastTxDate} />}
             </div>
 
-            {/* Divider */}
             <div style={{ borderTop: "1px solid rgba(170,255,0,0.08)", margin: "12px 0" }} />
 
             {/* Score breakdown */}
             <div className="text-xs text-muted mb-2">SCORE BREAKDOWN</div>
             <div style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: "12px" }}>
-              <BarRow label="VOLUME" value={volScore} max={65} />
-              <BarRow label="DAYS" value={dayScore} max={20} />
-              <BarRow label="HYPE" value={hypeScore} max={15} />
+              <BarRow label="TX COUNT" value={txScore} max={60} />
+              <BarRow label="PROTOCOLS" value={contractScore} max={20} />
+              <BarRow label="TOKENS" value={tokenScore} max={10} />
             </div>
           </>
         )}
@@ -154,23 +116,14 @@ export default function HyperliquidCard({ stats, delay = 0 }: { stats: Hyperliqu
   );
 }
 
-function DataRow({
-  label, value, highlight, valueColor,
-}: {
-  label: string; value: string; highlight?: boolean; valueColor?: string;
-}) {
+function DataRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div
       className="data-row"
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        padding: "3px 4px",
-        borderBottom: "1px solid rgba(170,255,0,0.04)",
-      }}
+      style={{ display: "flex", justifyContent: "space-between", padding: "3px 4px", borderBottom: "1px solid rgba(170,255,0,0.04)" }}
     >
       <span style={{ color: "rgba(200,232,168,0.45)", minWidth: 140 }}>{label}</span>
-      <span style={{ color: valueColor ?? (highlight ? "var(--lime)" : "var(--text)"), fontWeight: highlight ? 700 : 400 }}>
+      <span style={{ color: highlight ? "var(--lime)" : "var(--text)", fontWeight: highlight ? 700 : 400 }}>
         {value}
       </span>
     </div>

@@ -9,9 +9,13 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AIRDROP SCANNER — Polymarket × Hyperliquid",
+  title: "AIRDROP SCANNER — Polymarket × HyperEVM",
   description:
-    "Check your wallet eligibility for Polymarket POLY and Hyperliquid Season 2. Paste address. No connection required.",
+    "Check your wallet eligibility for Polymarket POLY and HyperEVM ecosystem airdrops. Paste address. No connection required.",
+  icons: {
+    icon: "/GTR - App icon.png",
+    apple: "/GTR - App icon.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

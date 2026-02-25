@@ -5,6 +5,7 @@ import Image from "next/image";
 import PolymarketCard from "@/components/PolymarketCard";
 import HyperliquidCard from "@/components/HyperliquidCard";
 import BatchResults, { WalletResult } from "@/components/BatchResults";
+import ShareCard from "@/components/ShareCard";
 
 type Tier = "legendary" | "high" | "medium" | "low" | "none";
 
@@ -22,18 +23,15 @@ interface PolymarketResult {
   error?: string;
 }
 
-interface HyperliquidResult {
+interface HyperEVMResult {
   wallet: string;
-  totalVolumeUSD: number;
-  lifetimePnl: number;
-  totalFeesPaid: number;
-  activeDayCount: number;
-  firstActiveDate: string | null;
-  lastActiveDate: string | null;
-  walletAge: number;
+  txCount: number;
   hypeBalance: number;
-  receivedS1Airdrop: boolean;
-  openPositions: number;
+  tokenCount: number;
+  uniqueContracts: number;
+  firstTxDate: string | null;
+  lastTxDate: string | null;
+  walletAge: number;
   score: number;
   tier: Tier;
   error?: string;
@@ -41,7 +39,7 @@ interface HyperliquidResult {
 
 interface SingleResults {
   polymarket: PolymarketResult;
-  hyperliquid: HyperliquidResult;
+  hyperliquid: HyperEVMResult;
   wallet: string;
 }
 
@@ -88,18 +86,18 @@ async function resolveEntry(entry: string): Promise<{ input: string; address: st
   return { input: entry, address: null, error: "Invalid address or ENS name" };
 }
 
-async function scanWallet(address: string): Promise<{ poly: PolymarketResult; hl: HyperliquidResult }> {
+async function scanWallet(address: string): Promise<{ poly: PolymarketResult; hl: HyperEVMResult }> {
   const [polyRes, hlRes] = await Promise.allSettled([
     fetch(`/api/polymarket?wallet=${address}`).then((r) => r.json()),
-    fetch(`/api/hyperliquid?wallet=${address}`).then((r) => r.json()),
+    fetch(`/api/hyperevm?wallet=${address}`).then((r) => r.json()),
   ]);
   return {
     poly: polyRes.status === "fulfilled"
       ? (polyRes.value as PolymarketResult)
       : ({ error: "REQUEST FAILED", wallet: address, score: 0, tier: "none" } as PolymarketResult),
     hl: hlRes.status === "fulfilled"
-      ? (hlRes.value as HyperliquidResult)
-      : ({ error: "REQUEST FAILED", wallet: address, score: 0, tier: "none" } as HyperliquidResult),
+      ? (hlRes.value as HyperEVMResult)
+      : ({ error: "REQUEST FAILED", wallet: address, score: 0, tier: "none" } as HyperEVMResult),
   };
 }
 
@@ -237,7 +235,7 @@ export default function HomePage() {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <span className="text-lime font-bold">▶ AIRDROP SCANNER v2.2</span>
-          <span className="text-dim">POLYMARKET × HYPERLIQUID</span>
+          <span className="text-dim">POLYMARKET × HYPEREVM</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <span className="text-dim">POLYGON + HL-L1</span>
@@ -294,7 +292,7 @@ export default function HomePage() {
                   Check if your wallet qualifies for the{" "}
                   <span className="text-lime">Polymarket POLY</span> token airdrop
                   {" "}and{" "}
-                  <span className="text-lime">Hyperliquid Season 2</span> rewards.
+                  <span className="text-lime">HyperEVM</span> ecosystem airdrops.
                   <br />
                   <span className="text-dim" style={{ fontSize: 12 }}>
                     Paste your address — no wallet connection, no signing required.
@@ -421,7 +419,7 @@ export default function HomePage() {
               >
                 {[
                   ["POLYMARKET", "POLY TOKEN · 2026", "UPCOMING"],
-                  ["HYPERLIQUID", "HYPE TOKEN · S2", "ACTIVE NOW"],
+                  ["HYPEREVM", "ECOSYSTEM ACTIVITY", "ACTIVE NOW"],
                   ["ENS SUPPORT", "RESOLVE .ETH NAMES", "LIVE"],
                   ["BATCH SCAN", `UP TO ${MAX_WALLETS} WALLETS`, "ENABLED"],
                 ].map(([k, v, status]) => (
@@ -469,12 +467,22 @@ export default function HomePage() {
                     {resolvedInput ? `${resolvedInput} → ${singleResults.wallet}` : singleResults.wallet}
                   </div>
                 </div>
-                <button
-                  onClick={reset}
-                  style={{ fontSize: 12, padding: "5px 14px", border: "1px solid rgba(170,255,0,0.2)", background: "rgba(170,255,0,0.04)", color: "var(--text-muted)", cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.08em" }}
-                >
-                  ← NEW SCAN
-                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <ShareCard
+                    wallet={singleResults.wallet}
+                    ensName={resolvedInput}
+                    polyScore={singleResults.polymarket?.score ?? 0}
+                    polyTier={singleResults.polymarket?.tier ?? "none"}
+                    hyperEvmScore={singleResults.hyperliquid?.score ?? 0}
+                    hyperEvmTier={singleResults.hyperliquid?.tier ?? "none"}
+                  />
+                  <button
+                    onClick={reset}
+                    style={{ fontSize: 12, padding: "5px 14px", border: "1px solid rgba(170,255,0,0.2)", background: "rgba(170,255,0,0.04)", color: "var(--text-muted)", cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.08em" }}
+                  >
+                    ← NEW SCAN
+                  </button>
+                </div>
               </div>
 
               <motion.div
@@ -486,7 +494,7 @@ export default function HomePage() {
                 <OverallVerdict poly={singleResults.polymarket?.score ?? 0} hl={singleResults.hyperliquid?.score ?? 0} />
                 <div style={{ display: "flex", gap: 24, fontSize: 12 }}>
                   <span><span className="text-dim">POLY </span><span className="text-lime font-bold">{singleResults.polymarket?.score ?? 0}/100</span></span>
-                  <span><span className="text-dim">HYPE-S2 </span><span className="text-lime font-bold">{singleResults.hyperliquid?.score ?? 0}/100</span></span>
+                  <span><span className="text-dim">HYPEREVM </span><span className="text-lime font-bold">{singleResults.hyperliquid?.score ?? 0}/100</span></span>
                 </div>
               </motion.div>
 
@@ -504,7 +512,7 @@ export default function HomePage() {
               >
                 ─────────────────────────────────────────────────────────────────────<br />
                 DISCLAIMER: SCORES ARE ESTIMATES BASED ON PUBLIC ON-CHAIN DATA AND KNOWN AIRDROP SIGNALS.<br />
-                FINAL ELIGIBILITY IS DETERMINED SOLELY BY POLYMARKET AND HYPERLIQUID TEAMS.<br />
+                FINAL ELIGIBILITY IS DETERMINED SOLELY BY POLYMARKET AND HYPEREVM PROTOCOL TEAMS.<br />
                 ─────────────────────────────────────────────────────────────────────
               </motion.div>
             </motion.div>

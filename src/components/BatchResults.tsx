@@ -129,7 +129,7 @@ export default function BatchResults({
           <span>#</span>
           <span>WALLET</span>
           <span>POLYMARKET (POLY)</span>
-          <span>HYPERLIQUID (S2)</span>
+          <span>HYPEREVM</span>
           <span>COMBINED</span>
         </div>
 
