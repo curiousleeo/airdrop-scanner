@@ -141,11 +141,14 @@ function DataRow({ label, value, highlight }: { label: string; value: string; hi
 
 function BarRow({ label, value, max }: { label: string; value: number; max: number }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-      <span style={{ color: "rgba(200,232,168,0.4)", minWidth: 68 }}>{label}</span>
-      <AsciiBar value={value} max={max} width={16} />
-      <span className="text-lime" style={{ minWidth: 32, textAlign: "right" }}>{value}</span>
-      <span className="text-dim">/{max}</span>
+    <div style={{ display: "grid", gridTemplateColumns: "72px 1fr 52px", alignItems: "center", gap: "8px" }}>
+      <span style={{ color: "rgba(200,232,168,0.4)" }}>{label}</span>
+      <div style={{ overflow: "hidden" }}>
+        <AsciiBar value={value} max={max} width={14} />
+      </div>
+      <span className="text-lime" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+        {value}<span className="text-dim">/{max}</span>
+      </span>
     </div>
   );
 }

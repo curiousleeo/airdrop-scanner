@@ -109,9 +109,13 @@ export async function GET(req: NextRequest) {
     if (txListRes.status === "fulfilled" && txListRes.value.ok) {
       try {
         const data = await txListRes.value.json();
-        const txs: Array<{ timestamp: string; to?: { hash: string; is_contract?: boolean } }> = data?.items ?? [];
+        const txs: Array<{ timestamp?: string; inserted_at?: string; to?: { hash: string; is_contract?: boolean } }> = data?.items ?? [];
         if (txs.length > 0) {
-          const timestamps = txs.map((t) => t.timestamp).filter(Boolean).sort();
+          // Blockscout may use "timestamp" or "inserted_at" depending on version
+          const timestamps = txs
+            .map((t) => t.timestamp ?? t.inserted_at)
+            .filter(Boolean)
+            .sort() as string[];
           firstTxDate = timestamps[0]?.split("T")[0] ?? null;
           lastTxDate = timestamps[timestamps.length - 1]?.split("T")[0] ?? null;
           const contracts = new Set(txs.map((t) => t.to?.hash).filter(Boolean));
