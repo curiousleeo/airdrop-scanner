@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   description:
     "Check your wallet eligibility for Polymarket POLY and HyperEVM ecosystem airdrops. Paste address. No connection required.",
   icons: {
-    icon: "/GTR - App icon.png",
-    apple: "/GTR - App icon.png",
+    icon: "/app-icon.png",
+    apple: "/app-icon.png",
   },
 };
 
