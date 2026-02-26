@@ -13,8 +13,7 @@ export const metadata: Metadata = {
   description:
     "Check your wallet eligibility for Polymarket POLY and HyperEVM ecosystem airdrops. Paste address. No connection required.",
   icons: {
-    icon: "/app-icon.png",
-    apple: "/app-icon.png",
+    icon: "/favicon.svg",
   },
 };
 
@@ -22,9 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/app-icon.png" type="image/png" />
-        <link rel="shortcut icon" href="/app-icon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/app-icon.png" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body className={mono.variable}>{children}</body>
     </html>
