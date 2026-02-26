@@ -211,7 +211,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(stats);
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error", wallet, detectedProtocols: [] } as HyperEVMStats,
+      { error: err instanceof Error ? err.message : "Unknown error", wallet, detectedProtocols: [], txCount: 0, hypeBalance: 0, tokenCount: 0, uniqueContracts: 0, firstTxDate: null, lastTxDate: null, walletAge: 0, score: 0, tier: "none" } as HyperEVMStats,
       { status: 500 }
     );
   }
