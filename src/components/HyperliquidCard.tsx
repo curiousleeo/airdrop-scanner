@@ -3,6 +3,11 @@ import { motion } from "framer-motion";
 import AsciiBar from "./AsciiBar";
 import { TierVerdict, AnimatedScore } from "./TerminalScore";
 
+interface DetectedProtocol {
+  name: string;
+  category: string;
+}
+
 interface HyperEVMStats {
   wallet: string;
   txCount: number;
@@ -14,8 +19,18 @@ interface HyperEVMStats {
   walletAge: number;
   score: number;
   tier: "legendary" | "high" | "medium" | "low" | "none";
+  detectedProtocols?: DetectedProtocol[];
   error?: string;
 }
+
+const CATEGORY_COLOR: Record<string, string> = {
+  DEX: "rgba(170,255,0,0.85)",
+  Lending: "rgba(80,200,255,0.85)",
+  CDP: "rgba(255,200,60,0.85)",
+  LST: "rgba(200,150,255,0.85)",
+  Bridge: "rgba(255,120,80,0.85)",
+  Native: "rgba(170,255,0,0.5)",
+};
 
 function fmtAge(d: number): string {
   if (d >= 365) return `${Math.floor(d / 365)}Y ${d % 365}D`;
@@ -41,6 +56,8 @@ export default function HyperliquidCard({ stats, delay = 0 }: { stats: HyperEVMS
     stats.tokenCount >= 5 ? 10 :
     stats.tokenCount >= 3 ? 7 :
     stats.tokenCount >= 1 ? 4 : 0;
+
+  const protocols = stats.detectedProtocols ?? [];
 
   return (
     <motion.div
@@ -99,6 +116,34 @@ export default function HyperliquidCard({ stats, delay = 0 }: { stats: HyperEVMS
               {stats.firstTxDate && <DataRow label="FIRST TX" value={stats.firstTxDate} />}
               {stats.lastTxDate && <DataRow label="LAST TX" value={stats.lastTxDate} />}
             </div>
+
+            {/* Protocol badges */}
+            {protocols.length > 0 && (
+              <>
+                <div style={{ borderTop: "1px solid rgba(170,255,0,0.08)", margin: "12px 0" }} />
+                <div className="text-xs text-muted mb-2">DETECTED PROTOCOLS</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {protocols.map((p) => (
+                    <span
+                      key={p.name}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        border: `1px solid ${CATEGORY_COLOR[p.category] ?? "rgba(170,255,0,0.4)"}`,
+                        color: CATEGORY_COLOR[p.category] ?? "rgba(170,255,0,0.8)",
+                        background: `${(CATEGORY_COLOR[p.category] ?? "rgba(170,255,0,0.1)").replace("0.85", "0.08").replace("0.5", "0.05")}`,
+                        letterSpacing: "0.08em",
+                        fontFamily: "inherit",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {p.name}
+                      <span style={{ opacity: 0.5, marginLeft: 4, fontSize: 9 }}>{p.category}</span>
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
 
             <div style={{ borderTop: "1px solid rgba(170,255,0,0.08)", margin: "12px 0" }} />
 

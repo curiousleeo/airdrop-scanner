@@ -11,11 +11,50 @@ export interface HyperEVMStats {
   walletAge: number;
   score: number;
   tier: "legendary" | "high" | "medium" | "low" | "none";
+  detectedProtocols: { name: string; category: string }[];
   error?: string;
 }
 
 const EVM_RPC = "https://rpc.hyperliquid.xyz/evm";
 const EXPLORER = "https://www.hyperscan.com";
+
+// Known protocol contracts on HyperEVM (all lowercase)
+const CONTRACT_PROTOCOLS: Record<string, { name: string; category: string }> = {
+  // HyperSwap DEX
+  "0xda0f518d521e0de83fadc8500c2d21b6a6c39bf9": { name: "HyperSwap", category: "DEX" },
+  "0x4e2960a8cd19b467b82d26d83facb0fae26b094d": { name: "HyperSwap", category: "DEX" },
+  "0x4df039804873717bff7d03694fb941cf0469b79e": { name: "HyperSwap", category: "DEX" },
+  // KittenSwap DEX
+  "0x618275f8efe54c2afa87bfb9f210a52f0ff89364": { name: "KittenSwap", category: "DEX" },
+  // HyperLend (Aave V3 fork)
+  "0xd01e9aa0ba6a4a06e756bc8c79579e6cef070822": { name: "HyperLend", category: "Lending" },
+  "0x49558c794ea2ac8974c9f27886ddfaa951e99171": { name: "HyperLend", category: "Lending" },
+  "0x2af0d6754a58723c50b5e73e45d964bfdd99fe2f": { name: "HyperLend", category: "Lending" },
+  // Felix CDP (feUSD stablecoin)
+  "0x9de1e57049c475736289cb006212f3e1dce4711b": { name: "Felix", category: "CDP" },
+  "0x999876bc29bc2251539c900a1bcfc6c934991f49": { name: "Felix", category: "CDP" },
+  "0x02c6a2fa58cc01a18b8d9e00ea48d65e4df26c70": { name: "Felix", category: "CDP" },
+  // HyperCore Bridge
+  "0x2222222222222222222222222222222222222222": { name: "HyperBridge", category: "Bridge" },
+  // WHYPE (wrapped HYPE for DeFi)
+  "0x5555555555555555555555555555555555555555": { name: "WHYPE", category: "Bridge" },
+};
+
+// Token symbols that signal protocol usage (for token-balance check)
+const TOKEN_SYMBOL_PROTOCOLS: Record<string, { name: string; category: string }> = {
+  "feUSD": { name: "Felix", category: "CDP" },
+  "lHYPE": { name: "Looped HYPE", category: "LST" },
+  "kHYPE": { name: "Kinetiq", category: "LST" },
+  "stHYPE": { name: "Stader", category: "LST" },
+  "wstHYPE": { name: "Stader", category: "LST" },
+  "KITTEN": { name: "KittenSwap", category: "DEX" },
+  "SWAP": { name: "HyperSwap", category: "DEX" },
+  "HYPE": { name: "HyperEVM", category: "Native" },
+  "WHYPE": { name: "WHYPE", category: "Bridge" },
+  "LHYPE": { name: "Looped HYPE", category: "LST" },
+  "KHYPE": { name: "Kinetiq", category: "LST" },
+  "STHYPE": { name: "Stader", category: "LST" },
+};
 
 async function rpcCall(method: string, params: unknown[]): Promise<unknown> {
   const res = await fetch(EVM_RPC, {
@@ -45,7 +84,7 @@ export async function GET(req: NextRequest) {
     const [txCountRaw, balanceRaw, txListRes, tokenRes] = await Promise.allSettled([
       rpcCall("eth_getTransactionCount", [wallet, "latest"]),
       rpcCall("eth_getBalance", [wallet, "latest"]),
-      explorerGet(`/api/v2/addresses/${wallet}/transactions?limit=50`),
+      explorerGet(`/api/v2/addresses/${wallet}/transactions?limit=100`),
       explorerGet(`/api/v2/addresses/${wallet}/token-balances`),
     ]);
 
@@ -61,34 +100,62 @@ export async function GET(req: NextRequest) {
       hypeBalance = parseInt(balanceRaw.value as string, 16) / 1e18;
     }
 
-    // Tx history — get first/last date and unique contracts
+    // Tx history — get first/last date, unique contracts, and protocol detection
     let firstTxDate: string | null = null;
     let lastTxDate: string | null = null;
     let uniqueContracts = 0;
+    const protocolMap = new Map<string, { name: string; category: string }>();
 
     if (txListRes.status === "fulfilled" && txListRes.value.ok) {
       try {
         const data = await txListRes.value.json();
-        const txs: Array<{ timestamp: string; to?: { hash: string } }> = data?.items ?? [];
+        const txs: Array<{ timestamp: string; to?: { hash: string; is_contract?: boolean } }> = data?.items ?? [];
         if (txs.length > 0) {
           const timestamps = txs.map((t) => t.timestamp).filter(Boolean).sort();
           firstTxDate = timestamps[0]?.split("T")[0] ?? null;
           lastTxDate = timestamps[timestamps.length - 1]?.split("T")[0] ?? null;
           const contracts = new Set(txs.map((t) => t.to?.hash).filter(Boolean));
           uniqueContracts = contracts.size;
+
+          // Match contracts against known protocols
+          for (const addr of contracts) {
+            if (!addr) continue;
+            const proto = CONTRACT_PROTOCOLS[addr.toLowerCase()];
+            if (proto && !protocolMap.has(proto.name)) {
+              protocolMap.set(proto.name, proto);
+            }
+          }
         }
       } catch { /* ignore */ }
     }
 
-    // Token holdings
+    // Token holdings + protocol detection via token symbols
     let tokenCount = 0;
     if (tokenRes.status === "fulfilled" && tokenRes.value.ok) {
       try {
         const data = await tokenRes.value.json();
-        const tokens = Array.isArray(data) ? data : (data?.items ?? []);
-        tokenCount = tokens.filter((t: { value?: string }) => Number(t.value ?? 0) > 0).length;
+        const tokens: Array<{ value?: string; token?: { symbol?: string; address?: string } }> =
+          Array.isArray(data) ? data : (data?.items ?? []);
+        const held = tokens.filter((t) => Number(t.value ?? 0) > 0);
+        tokenCount = held.length;
+
+        for (const t of held) {
+          const sym = t.token?.symbol?.toUpperCase() ?? "";
+          const proto = TOKEN_SYMBOL_PROTOCOLS[sym] ?? TOKEN_SYMBOL_PROTOCOLS[t.token?.symbol ?? ""];
+          if (proto && !protocolMap.has(proto.name)) {
+            protocolMap.set(proto.name, proto);
+          }
+          // Also check token address against known contracts
+          const addr = t.token?.address?.toLowerCase() ?? "";
+          const addrProto = CONTRACT_PROTOCOLS[addr];
+          if (addrProto && !protocolMap.has(addrProto.name)) {
+            protocolMap.set(addrProto.name, addrProto);
+          }
+        }
       } catch { /* ignore */ }
     }
+
+    const detectedProtocols = Array.from(protocolMap.values());
 
     // Wallet age
     const walletAge = firstTxDate
@@ -96,7 +163,6 @@ export async function GET(req: NextRequest) {
       : 0;
 
     // Scoring
-    // Tx count is primary signal
     let score = 0;
     if (txCount >= 100) score += 60;
     else if (txCount >= 50) score += 45;
@@ -139,12 +205,13 @@ export async function GET(req: NextRequest) {
       walletAge,
       score,
       tier,
+      detectedProtocols,
     };
 
     return NextResponse.json(stats);
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error", wallet } as HyperEVMStats,
+      { error: err instanceof Error ? err.message : "Unknown error", wallet, detectedProtocols: [] } as HyperEVMStats,
       { status: 500 }
     );
   }

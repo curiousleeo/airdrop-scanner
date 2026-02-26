@@ -34,6 +34,7 @@ interface HyperEVMResult {
   walletAge: number;
   score: number;
   tier: Tier;
+  detectedProtocols?: { name: string; category: string }[];
   error?: string;
 }
 
