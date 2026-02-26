@@ -11,7 +11,7 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "AIRDROP SCANNER — Polymarket × HyperEVM",
   description:
-    "Check your wallet eligibility for Polymarket POLY and HyperEVM ecosystem airdrops. Paste address. No connection required.",
+    "Check if your wallet qualifies for the Polymarket or HyperEVM ecosystem airdrops. Paste address. No connection required.",
   icons: {
     icon: "/favicon.svg",
   },

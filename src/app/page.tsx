@@ -291,8 +291,8 @@ export default function HomePage() {
                   }}
                 >
                   Check if your wallet qualifies for the{" "}
-                  <span className="text-lime">Polymarket POLY</span> token airdrop
-                  {" "}and{" "}
+                  <span className="text-lime">Polymarket</span>
+                  {" "}or{" "}
                   <span className="text-lime">HyperEVM</span> ecosystem airdrops.
                   <br />
                   <span className="text-dim" style={{ fontSize: 12 }}>
